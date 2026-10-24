@@ -1,0 +1,7 @@
+Equity crowdfunding as a pipeline to institutional capital
+
+Research question. Using every U.S. Regulation Crowdfunding offering filed since 2016, I ask whether an issuer's disclosed financials and offering terms predict whether the firm raises a Regulation D round within 24 months of its campaign, and, secondarily, whether the campaign reaches its funding target.
+
+Data. SEC Crowdfunding Offerings Data Sets (11,123 offering statements, 44% reporting zero revenue), linked by CIK to the SEC Form D Data Sets, plus FRED series describing market conditions at launch. 8,417 offerings have a complete 24-month window; 8.3% are followed by a Form D. Campaign success is not reported directly: I construct it from Form C-U progress updates, cross-validated against annual reports. Surprisingly, 55% of offerings file no progress update at all, although the rules require a final one, so success is modelled on the reliable subsample and its measurement error reported.
+
+Methods. Logistic regression as baseline; decision trees and gradient boosting with time-ordered train/test splits and explicit handling of class imbalance; a neural network to test whether added flexibility improves prediction; PCA and k-means to identify issuer profiles. Models are compared out of sample on ROC-AUC and precision-recall. A null result, that disclosures carry no predictive information, would itself be informative.

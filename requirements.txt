@@ -1,0 +1,6 @@
+# Target: Nuvolos JupyterLab 4.5.0, Python 3.12
+pandas>=2.2
+numpy>=1.26
+requests>=2.31
+scikit-learn>=1.5
+matplotlib>=3.8
