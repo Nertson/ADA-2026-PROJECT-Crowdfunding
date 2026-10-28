@@ -1,6 +1,7 @@
 """Read the SEC Crowdfunding Offerings quarterly zips into pandas tables."""
 from __future__ import annotations
 
+import warnings
 import zipfile
 from pathlib import Path
 
@@ -25,16 +26,31 @@ def read_table(name: str, cf_dir: Path = CF_DIR) -> pd.DataFrame:
 
     A ``QUARTER`` column (e.g. ``2021q3``) records the source file. Values are
     left as strings: date formats differ across quarters and are parsed later.
+    Quarters whose zip lacks the table (COISSUER_INFORMATION before 2021) are
+    skipped with a warning.
     """
-    frames = []
+    frames, missing = [], []
     for path in sorted(cf_dir.glob("*_cf.zip")):
         with zipfile.ZipFile(path) as z:
-            member = next(m for m in z.namelist() if m.endswith(f"FORM_C_{name}.tsv"))
+            member = next((m for m in z.namelist() if m.endswith(f"FORM_C_{name}.tsv")), None)
+            if member is None:
+                missing.append(path.name[:6])
+                continue
             with z.open(member) as f:
                 df = pd.read_csv(f, sep="\t", dtype=str, keep_default_na=False,
                                  na_values=[""], quoting=3, encoding="utf-8")
         df["QUARTER"] = path.name[:6]
         frames.append(df)
+    return _stack(frames, missing, f"FORM_C_{name}")
+
+
+def _stack(frames: list[pd.DataFrame], missing: list[str], name: str) -> pd.DataFrame:
+    """Concatenate per-quarter frames, warning about quarters without the table."""
+    if not frames:
+        raise FileNotFoundError(f"{name}.tsv is in none of the zips")
+    if missing:
+        warnings.warn(f"{name}.tsv absent from {len(missing)} quarter(s): {', '.join(missing)}",
+                      stacklevel=3)
     return pd.concat(frames, ignore_index=True)
 
 

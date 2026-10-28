@@ -14,7 +14,8 @@ issuer raises a Regulation D round (Form D) within 24 months?
 | `src/cf_data.py`, `src/formd_data.py` | Read the SEC quarterly zips |
 | `src/targets.py` | Builds the success and Form D targets |
 | `notebooks/00_feasibility.ipynb` | Checks the data can support the research question |
-| `data/processed/` | Small derived files |
+| `notebooks/02_clean.ipynb` | Builds the offering table → `data/processed/offerings.parquet` |
+| `data/processed/` | Derived files (`offerings.parquet` is rebuilt, not committed; `manual_check_sample.csv` is filled by hand) |
 | `paper/` | Paper (SIAM style) |
 
 ## Reproduce
@@ -25,7 +26,7 @@ python -m src.download          # ~210 MB, a few minutes
 ```
 
 Then run the notebooks in order, each top to bottom in a fresh kernel.
-`00_feasibility` takes about 1–2 minutes and under 4 GB of RAM.
+`00_feasibility` and `02_clean` each take about 1–2 minutes and under 4 GB of RAM.
 
 ## Data and licences
 

@@ -118,6 +118,13 @@ def success_from_update(text: pd.Series, target: pd.Series) -> pd.DataFrame:
                          "RATIO_TO_TARGET": ratio, "SUCCESS_CU": success, "SOURCE": source})
 
 
+# Plausibility bounds for offering terms. Targets under $1,000 are typos
+# (e.g. $0.01, $1); campaigns can be extended by amendment, but beyond three
+# years the deadline is a typo (e.g. 2032 for 2023).
+MIN_TARGET = 1_000
+MAX_CAMPAIGN_DAYS = 3 * 365
+
+
 def build_offerings(sub: pd.DataFrame, dis: pd.DataFrame, iss: pd.DataFrame) -> pd.DataFrame:
     """One row per Reg CF offering (FILE_NUMBER) with its terms and success flag.
 
@@ -127,6 +134,11 @@ def build_offerings(sub: pd.DataFrame, dis: pd.DataFrame, iss: pd.DataFrame) -> 
     0 if the last *final* C-U (filed on/after the deadline, or stating $0 or a
     failure in words) reports less, or if the Form C was withdrawn (C-W);
     NaN otherwise. ``Y_SOURCE`` says which.
+
+    Implausible terms are flagged, not dropped (dropping is a cleaning
+    decision): ``TARGET_SUSPECT`` (target below MIN_TARGET or missing) and
+    ``DEADLINE_SUSPECT`` (deadline missing, before the Form C, or more than
+    MAX_CAMPAIGN_DAYS after it). A suspect target is not used to judge success.
     """
     from src.cf_data import parse_dates
 
@@ -145,10 +157,14 @@ def build_offerings(sub: pd.DataFrame, dis: pd.DataFrame, iss: pd.DataFrame) -> 
            .rename(columns={"DATE": "C_DATE"}).join(terms))
     off["CIK"] = off.CIK.str.zfill(10)
     off["WITHDRAWN"] = off.index.isin(f.loc[f.SUBMISSION_TYPE == "C-W", "FILE_NUMBER"])
+    days = (off.DEADLINE - off.C_DATE).dt.days
+    off["TARGET_SUSPECT"] = ~(off.TARGET >= MIN_TARGET)
+    off["DEADLINE_SUSPECT"] = ~days.between(0, MAX_CAMPAIGN_DAYS)
 
     cu = f[f.SUBMISSION_TYPE == "C-U"][["FILE_NUMBER", "DATE", "PROGRESSUPDATE"]]
     cu = cu.join(off[["TARGET", "DEADLINE"]], on="FILE_NUMBER")
-    cu = pd.concat([cu, success_from_update(cu.PROGRESSUPDATE, cu.TARGET).set_index(cu.index)], axis=1)
+    usable_target = cu.TARGET.where(cu.TARGET >= MIN_TARGET)
+    cu = pd.concat([cu, success_from_update(cu.PROGRESSUPDATE, usable_target).set_index(cu.index)], axis=1)
     cu["FINAL"] = (cu.DATE >= cu.DEADLINE) | (cu.OUTCOME_WORDS == 0) | (cu.AMOUNT_STATED == 0)
 
     off["N_CU"] = cu.groupby("FILE_NUMBER").size().reindex(off.index, fill_value=0)

@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from src.cf_data import parse_dates
+from src.cf_data import _stack, parse_dates
 
 ROOT = Path(__file__).resolve().parents[1]
 FORMD_DIR = ROOT / "data" / "raw" / "form_d"
@@ -14,18 +14,24 @@ FORMD_DIR = ROOT / "data" / "raw" / "form_d"
 
 def read_table(name: str, usecols: list[str] | None = None,
                formd_dir: Path = FORMD_DIR) -> pd.DataFrame:
-    """Stack Form D table ``<name>.tsv`` (e.g. ``ISSUERS``) across all quarters, as str."""
-    frames = []
+    """Stack Form D table ``<name>.tsv`` (e.g. ``ISSUERS``) across all quarters, as str.
+
+    Quarters whose zip lacks the table (RECIPIENTS in 2008Q2) are skipped with a warning.
+    """
+    frames, missing = [], []
     for path in sorted(formd_dir.glob("*_d*.zip")):
         with zipfile.ZipFile(path) as z:
-            member = next(m for m in z.namelist() if m.endswith(f"/{name}.tsv"))
+            member = next((m for m in z.namelist() if m.endswith(f"/{name}.tsv")), None)
+            if member is None:
+                missing.append(path.name[:6])
+                continue
             with z.open(member) as f:
                 df = pd.read_csv(f, sep="\t", dtype=str, keep_default_na=False, na_values=[""],
                                  quoting=3, encoding="utf-8", encoding_errors="replace",
                                  usecols=usecols)
         df["QUARTER"] = path.name[:6]
         frames.append(df)
-    return pd.concat(frames, ignore_index=True)
+    return _stack(frames, missing, name)
 
 
 def filings_by_cik() -> pd.DataFrame:

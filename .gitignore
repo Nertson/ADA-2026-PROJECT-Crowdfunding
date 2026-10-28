@@ -28,3 +28,6 @@ env/
 
 # Notebook exports (regenerated locally)
 reports/*.html
+
+# Derived tables, rebuilt by notebooks/02_clean.ipynb
+data/processed/*.parquet
