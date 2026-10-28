@@ -3,16 +3,28 @@ CLAUDE.md
 
 # Raw data: downloaded by src/download.py, never committed
 data/raw/
+*.zip
 
 # Python / Jupyter
 __pycache__/
 *.pyc
+*.pyo
+*.egg-info/
 .ipynb_checkpoints/
 .venv/
 venv/
+env/
 .env
+.env.*
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.cache/
 
 # Editors / OS
 .vscode/
 .idea/
 .DS_Store
+
+# Notebook exports (regenerated locally)
+reports/*.html
